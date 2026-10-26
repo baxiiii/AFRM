@@ -1,86 +1,51 @@
 // Models.h - plain data types shared by every AFRM component.
-//
-// Units used throughout: kilograms (kg), nautical miles (nm), hours (h).
-// One knot = one nautical mile per hour. Units appear in member names.
+// Units: kilograms (kg), nautical miles (nm), hours (h); 1 knot = 1 nm/h.
 
 #pragma once
-#include <utility>
+
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace afrm {
 
-    // Input data
-
-    // These are the eight CSV columns.
     struct FlightRecord {
         std::string flight_id;
-        double trip_distance_nm = 0.0;           // total planned trip distance
-        double alternate_distance_nm = 0.0;      // destination to alternate
-        double distance_flown_nm = 0.0;          // distance flown at the checkpoint
-        double fuel_on_board_kg = 0.0;           // fuel on board at the checkpoint
-        double ground_speed_knots = 0.0;         // constant cruise ground speed
-        double cruise_flow_kg_per_hour = 0.0;    // constant cruise fuel flow
-        double holding_flow_kg_per_hour = 0.0;   // constant holding fuel flow
+        double trip_distance_nm = 0.0;
+        double alternate_distance_nm = 0.0;
+        double distance_flown_nm = 0.0;
+        double fuel_on_board_kg = 0.0;
+        double ground_speed_knots = 0.0;
+        double cruise_flow_kg_per_hour = 0.0;
+        double holding_flow_kg_per_hour = 0.0;
     };
 
-    // Validation
-
-    // Outcome of validating a record or a file. Used instead of exceptions for
-    // ordinary control flow (std::expected is C++23 and is not used).
     struct ValidationResult {
         bool is_valid = true;
-        std::string message;  // empty when valid, otherwise a clear reason
+        std::string message;  // empty when valid
 
         static ValidationResult ok() { return { true, {} }; }
         static ValidationResult fail(std::string reason) { return { false, std::move(reason) }; }
     };
 
-    // ---------------------------------------------------------------------------
-    // Calculation results
-    // ---------------------------------------------------------------------------
-
-    // Results for one valid flight. See docs/requirements.md for the formulas.
-    //
-    // Rounding rule (applied in Calculations.cpp, controlled by FuelCriteria):
-    //   * The REQUIRED quantities (contingency, alternate, final reserve) are
-    //     rounded UP to the next whole kg before they are stored, and the two
-    //     protection totals are the sums of those stored values.
-    //   * Trip fuel to go and PFD are NOT rounded.
-    //   * The status comparison uses these stored values, so rounding can only
-    //     make a marginal case look less safe, never safer.
+    // Only the values the assessment and report need.
+    // Contingency, alternate and final reserve are rounded UP to whole kg and the
+    // two totals are sums of those rounded values, so rounding can only make a
+    // marginal case stricter. Trip fuel and PFD are not rounded.
     struct FuelCalculation {
-        double remaining_distance_nm = 0.0;
-        double remaining_trip_time_hours = 0.0;
         double trip_fuel_to_go_kg = 0.0;
         double alternate_fuel_kg = 0.0;
         double contingency_fuel_kg = 0.0;
         double final_reserve_fuel_kg = 0.0;
-        double predicted_fuel_at_destination_kg = 0.0;  // fuel_on_board - trip_fuel_to_go
+        double predicted_fuel_at_destination_kg = 0.0;  // fuel on board - trip fuel to go
         double protected_fuel_kg = 0.0;                 // contingency + alternate + final reserve
         double diversion_protected_fuel_kg = 0.0;       // alternate + final reserve
     };
 
-    // Calculation outcome: if validation.is_valid is false, values must not be used.
-    struct FuelCalculationResult {
-        ValidationResult validation;
-        FuelCalculation values;
-    };
+    enum class FuelStatus { Nominal, Caution, MinimumFuel, FuelEmergency };
 
-    // ---------------------------------------------------------------------------
-    // Assessment
-    // ---------------------------------------------------------------------------
-
-    enum class FuelStatus {
-        Nominal,
-        Caution,
-        MinimumFuel,
-        FuelEmergency
-    };
-
-    // Exact display labels required by the specification.
     inline std::string_view to_string(FuelStatus status) {
         switch (status) {
         case FuelStatus::Nominal:       return "NOMINAL";
@@ -88,27 +53,23 @@ namespace afrm {
         case FuelStatus::MinimumFuel:   return "MINIMUM FUEL";
         case FuelStatus::FuelEmergency: return "FUEL EMERGENCY";
         }
-        return "UNKNOWN";  // unreachable for valid enum values
+        return "UNKNOWN";
     }
 
     struct FuelAssessment {
-        FuelStatus status = FuelStatus::FuelEmergency;  // most severe by default
+        FuelStatus status = FuelStatus::FuelEmergency;  // fails safe
         std::string explanation;
     };
 
-    // CSV loading results
-
-    struct RejectedRecord {
-        std::size_t line_number = 0;  // 1-based line in the file (header is line 1)
-        std::string raw_line;
+    struct RejectedRow {
+        std::size_t line_number = 0;  // 1-based; header is line 1
         std::string reason;
     };
 
     struct LoadResult {
-        ValidationResult file_status;           // invalid if the file cannot be opened or the header is wrong
-        std::vector<FlightRecord> records;      // valid records only
-        std::vector<RejectedRecord> rejected;
-        std::size_t data_rows_read = 0;         // non-empty data rows (valid + rejected)
+        std::string file_error;  // empty if the file opened and the header was right
+        std::vector<FlightRecord> records;  // valid rows only
+        std::vector<RejectedRow> rejected;
     };
 
 }  // namespace afrm
