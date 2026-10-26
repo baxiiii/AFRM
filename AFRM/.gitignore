@@ -1,0 +1,58 @@
+# Build output (all projects write under build/, see "Dependency and build assumptions")
+build/
+x64/
+Debug/
+Release/
+bin/
+obj/
+
+# Visual Studio local state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.VC.opendb
+*.ipch
+*.aps
+ipch/
+enc_temp_folder/
+*.sdf
+*.opensdf
+
+# Build and test artefacts
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.exe
+*.idb
+*.tlog
+*.lastbuildstate
+*.log
+*.vsp
+*.vspx
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# vcpkg
+vcpkg_installed/
+.vcpkg-root
+
+# Temporary files
+*~
+*.tmp
+*.bak
+Thumbs.db
+~$*
+
+# Machine-specific configuration
+CMakeUserPresets.json
+launchSettings.json
+*.rsuser

@@ -1,0 +1,8 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="src/AFRM.Core/AFRM.Core.vcxproj" Id="7b5807cd-2940-41e4-93c9-306e761f55be" />
+  <Project Path="src/AFRM/AFRM.vcxproj" Id="ac478bee-44a5-4c06-a006-bbb266e2df76" />
+</Solution>
