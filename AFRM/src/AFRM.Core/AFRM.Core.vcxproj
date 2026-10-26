@@ -152,6 +152,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Config.h" />
+    <ClInclude Include="Models.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
