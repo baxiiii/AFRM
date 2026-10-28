@@ -2,11 +2,10 @@
   "ExpandedNodes": [
     "",
     "\\AFRM",
-    "\\AFRM\\data",
-    "\\AFRM\\src",
-    "\\AFRM\\src\\AFRM",
-    "\\AFRM\\src\\AFRM.Core"
+    "\\AFRM\\.github",
+    "\\AFRM\\.github\\workflows",
+    "\\AFRM\\docs"
   ],
-  "SelectedNode": "\\AFRM\\src\\AFRM.Core\\pch.cpp",
+  "SelectedNode": "\\AFRM\\vcpkg.json",
   "PreviewInSolutionExplorer": false
 }

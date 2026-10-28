@@ -1,5 +1,5 @@
 // DataGenerator.cpp
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core/DataGenerator.h"
+#include "DataGenerator.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 #include <utility>
 
 #include "pch.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core/Calculations.h"
+#include "Calculations.h"
 
 namespace afrm {
 
