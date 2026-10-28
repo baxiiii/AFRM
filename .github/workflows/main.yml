@@ -45,10 +45,13 @@ jobs:
 
       - name: Restore vcpkg dependencies
         shell: pwsh
+        working-directory: AFRM
         run: |
-          & "${{ steps.vcpkg.outputs.path }}" install `
-            --manifest-root "$env:GITHUB_WORKSPACE\AFRM" `
-            --triplet x64-windows-static-md
+          & "C:\vcpkg\vcpkg.exe" install --triplet x64-windows-static-md
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       - name: Build solution
         run: |
