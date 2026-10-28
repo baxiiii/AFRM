@@ -306,6 +306,13 @@ Generated records do not store a status. The status is calculated after loading
 or generation using the same calculation and assessment functions as the main
 application.
 
+## Continuous integration
+
+The repository includes a GitHub Actions workflow at:
+
+```text
+.github/workflows/ci.yml
+
 ## Disclaimer
 
 This software is an educational prototype only. It must not be used for
