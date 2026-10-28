@@ -1,0 +1,99 @@
+name: AFRM CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.configuration }}
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: AFRM
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Locate vcpkg
+        id: vcpkg
+        shell: pwsh
+        run: |
+          $vcpkg = Get-Command vcpkg -ErrorAction SilentlyContinue
+
+          if ($null -eq $vcpkg) {
+            Write-Error "vcpkg was not found on the GitHub Actions runner."
+          }
+
+          "path=$($vcpkg.Source)" >> $env:GITHUB_OUTPUT
+
+      - name: Restore vcpkg dependencies
+        shell: pwsh
+        working-directory: AFRM
+        run: |
+          & "C:\vcpkg\vcpkg.exe" install --triplet x64-windows-static-md
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Build solution
+        run: |
+          msbuild AFRM.slnx `
+            /m `
+            /p:Configuration=${{ matrix.configuration }} `
+            /p:Platform=x64 `
+            /p:VcpkgEnableManifest=true `
+            /p:VcpkgTriplet=x64-windows-static-md `
+            /verbosity:minimal
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $resultsDirectory = "test-results"
+          New-Item -ItemType Directory -Force $resultsDirectory | Out-Null
+
+          $testExecutable = "build\x64\${{ matrix.configuration }}\AFRM.Tests.exe"
+          $testReport = "$resultsDirectory\AFRM.Tests-${{ matrix.configuration }}.xml"
+
+          if (-not (Test-Path $testExecutable)) {
+            Write-Error "Test executable was not found: $testExecutable"
+          }
+
+          & ".\$testExecutable" "--gtest_output=xml:$testReport"
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+      - name: Upload GoogleTest report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.configuration }}
+          path: AFRM/test-results/AFRM.Tests-${{ matrix.configuration }}.xml
+          if-no-files-found: warn
+
+      - name: Upload build output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-${{ matrix.configuration }}
+          path: AFRM/build/x64/${{ matrix.configuration }}/
+          if-no-files-found: warn
