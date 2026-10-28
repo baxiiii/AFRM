@@ -1,11 +1,11 @@
 // Calculations.cpp
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Calculations.h"
+#include "Calculations.h"
 
 #include <algorithm>
 #include <cmath>
 #include <string>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
+#include "Config.h"
 
 namespace afrm {
 

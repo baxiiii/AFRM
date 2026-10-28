@@ -17,12 +17,12 @@
 #include <iostream>
 #include <string>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Assessment.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Calculations.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\CsvLoader.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\DataGenerator.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Models.h"
+#include "Assessment.h"
+#include "Calculations.h"
+#include "Config.h"
+#include "CsvLoader.h"
+#include "DataGenerator.h"
+#include "Models.h"
 
 namespace {
 

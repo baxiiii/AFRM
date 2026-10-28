@@ -5,7 +5,7 @@
 #include <istream>
 #include <string_view>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Models.h"
+#include "Models.h"
 
 namespace afrm {
 

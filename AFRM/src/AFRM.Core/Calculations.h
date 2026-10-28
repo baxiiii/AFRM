@@ -1,7 +1,7 @@
 // Calculations.h
 #pragma once
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Models.h"
+#include "Models.h"
 
 namespace afrm {
 

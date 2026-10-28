@@ -14,7 +14,7 @@
 
 	<PropertyGroup Label="Globals">
 		<VCProjectVersion>18.0</VCProjectVersion>
-		<ProjectGuid>{AC478BEE-44A5-4C06-A006-BBB266E2DF76}</ProjectGuid>
+		<ProjectGuid>{7B5807CD-2940-41E4-93C9-306E761F55BE}</ProjectGuid>
 		<Keyword>Win32Proj</Keyword>
 		<RootNamespace>AFRM</RootNamespace>
 		<ProjectName>AFRM</ProjectName>

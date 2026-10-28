@@ -1,5 +1,5 @@
 // CsvLoader.cpp
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\CsvLoader.h"
+#include "CsvLoader.h"
 
 #include <charconv>
 #include <cstddef>
@@ -11,8 +11,8 @@
 #include <vector>
 #include "pch.h"
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Calculations.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
+#include "Calculations.h"
+#include "Config.h"
 
 namespace afrm {
 

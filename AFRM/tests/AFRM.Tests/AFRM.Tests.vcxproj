@@ -12,7 +12,7 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
-    <ProjectGuid>{7AE767FB-19D3-4F91-8D09-540C82988DDA}</ProjectGuid>
+    <ProjectGuid>{7B5807CD-2940-41E4-93C9-306E761F55BE}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>AFRM_Tests</RootNamespace>
     <ProjectName>AFRM.Tests</ProjectName>

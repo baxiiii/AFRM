@@ -1,7 +1,7 @@
 // test_helpers.h - shared helpers for the AFRM tests.
 #pragma once
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Models.h"
+#include "Models.h"
 
 namespace afrm_test {
 

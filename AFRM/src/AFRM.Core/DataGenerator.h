@@ -5,8 +5,8 @@
 #include <ostream>
 #include <vector>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Models.h"
+#include "Config.h"
+#include "Models.h"
 
 namespace afrm {
 

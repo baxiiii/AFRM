@@ -5,8 +5,8 @@
 #include <limits>
 #include <string>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Assessment.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Calculations.h"
+#include "Assessment.h"
+#include "Calculations.h"
 #include "test_helpers.h"
 
 using namespace afrm;

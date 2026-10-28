@@ -12,11 +12,11 @@
 #include <string>
 #include <vector>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Assessment.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Calculations.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\CsvLoader.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\DataGenerator.h"
+#include "Assessment.h"
+#include "Calculations.h"
+#include "Config.h"
+#include "CsvLoader.h"
+#include "DataGenerator.h"
 #include "test_helpers.h"
 
 using namespace afrm;

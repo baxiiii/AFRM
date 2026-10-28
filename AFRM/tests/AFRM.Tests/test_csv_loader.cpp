@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\Config.h"
-#include "C:\Users\ibrah\OneDrive\Documents\University\REPOs\AFRM\AFRM\src\AFRM.Core\CsvLoader.h"
+#include "Config.h"
+#include "CsvLoader.h"
 #include "test_helpers.h"
 
 using namespace afrm;
