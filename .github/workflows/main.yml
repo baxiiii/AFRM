@@ -31,28 +31,36 @@ jobs:
       - name: Set up MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Locate vcpkg
-        id: vcpkg
+      - name: Install vcpkg
         shell: pwsh
         run: |
-          $vcpkg = Get-Command vcpkg -ErrorAction SilentlyContinue
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP "vcpkg"
 
-          if ($null -eq $vcpkg) {
-            Write-Error "vcpkg was not found on the GitHub Actions runner."
+          if (Test-Path $vcpkgRoot) {
+            Remove-Item $vcpkgRoot -Recurse -Force
           }
 
-          "path=$($vcpkg.Source)" >> $env:GITHUB_OUTPUT
+          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
 
-      - name: Restore vcpkg dependencies
-        shell: pwsh
-        working-directory: AFRM
-        run: |
-          & "C:\vcpkg\vcpkg.exe" install --triplet x64-windows-static-md
+          & "$vcpkgRoot\bootstrap-vcpkg.bat"
 
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
 
+          "VCPKG_ROOT=$vcpkgRoot" >> $env:GITHUB_ENV
+          "$vcpkgRoot" >> $env:GITHUB_PATH
+
+      - name: Restore vcpkg dependencies
+        shell: pwsh
+        working-directory: AFRM
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install `
+            --triplet x64-windows-static-md
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
       - name: Build solution
         run: |
           msbuild AFRM.slnx `
