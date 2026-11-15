@@ -116,3 +116,40 @@ TEST(Assessment, REQ_PFD_01_RoundingNeverMakesMarginalCaseSafer) {
     EXPECT_DOUBLE_EQ(c.protected_fuel_kg, 2462.0);
     EXPECT_EQ(assess_fuel_status(c).status, FuelStatus::Caution);
 }
+
+// ---- Difference in fuel assessment due to aircraft weight --------------------------------
+
+TEST(Assessment, REQ_WEIGHT_00_AircraftWeightDoesNotAffectFuelAssessment) {
+    // Hypothetical weights only. The current FlightRecord model does not
+    // contain an aircraft-weight field.
+    constexpr double light_aircraft_weight_kg = 5000.0;
+    constexpr double heavy_aircraft_weight_kg = 100000.0;
+
+    // The current AFRM model receives identical performance inputs for both
+    // hypothetical aircraft.
+    FlightRecord light_aircraft = make_base_flight();
+    FlightRecord heavy_aircraft = make_base_flight();
+
+    const FuelCalculation light_calculation =
+        calculate_fuel(light_aircraft);
+
+    const FuelCalculation heavy_calculation =
+        calculate_fuel(heavy_aircraft);
+
+    const FuelAssessment light_assessment =
+        assess_fuel_status(light_calculation);
+
+    const FuelAssessment heavy_assessment =
+        assess_fuel_status(heavy_calculation);
+
+    (void)light_aircraft_weight_kg;
+    (void)heavy_aircraft_weight_kg;
+
+    EXPECT_EQ(
+        light_assessment.status,
+        heavy_assessment.status);
+
+    EXPECT_EQ(
+        light_assessment.explanation,
+        heavy_assessment.explanation);
+}

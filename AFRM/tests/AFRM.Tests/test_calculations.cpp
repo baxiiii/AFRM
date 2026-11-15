@@ -146,3 +146,55 @@ TEST(Calculations, REQ_PFD_01_FuelOnBoardMinusTripFuelToGo) {
     flight.fuel_on_board_kg = 3000.0;  // short of trip fuel
     EXPECT_NEAR(calculate_fuel(flight).predicted_fuel_at_destination_kg, -600.0, kTolerance);
 }
+
+
+
+// ---- Difference in fuel assessment due to aircraft weight --------------------------------
+
+
+TEST(Calculations, REQ_WEIGHT_00_AircraftWeightDoesNotAffectFuelCalculation) {
+    // Hypothetical weights only. The current FlightRecord model does not
+    // contain an aircraft-weight field.
+    constexpr double light_aircraft_weight_kg = 5000.0;
+    constexpr double heavy_aircraft_weight_kg = 100000.0;
+
+    // These records are otherwise identical because the current application
+    // has no mechanism to pass aircraft weight into the calculation.
+    FlightRecord light_aircraft = make_base_flight();
+    FlightRecord heavy_aircraft = make_base_flight();
+
+    const FuelCalculation light_result = calculate_fuel(light_aircraft);
+    const FuelCalculation heavy_result = calculate_fuel(heavy_aircraft);
+
+    // Make the hypothetical limitation explicit without compiler warnings.
+    (void)light_aircraft_weight_kg;
+    (void)heavy_aircraft_weight_kg;
+
+    EXPECT_DOUBLE_EQ(
+        light_result.trip_fuel_to_go_kg,
+        heavy_result.trip_fuel_to_go_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.alternate_fuel_kg,
+        heavy_result.alternate_fuel_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.contingency_fuel_kg,
+        heavy_result.contingency_fuel_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.final_reserve_fuel_kg,
+        heavy_result.final_reserve_fuel_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.predicted_fuel_at_destination_kg,
+        heavy_result.predicted_fuel_at_destination_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.protected_fuel_kg,
+        heavy_result.protected_fuel_kg);
+
+    EXPECT_DOUBLE_EQ(
+        light_result.diversion_protected_fuel_kg,
+        heavy_result.diversion_protected_fuel_kg);
+}

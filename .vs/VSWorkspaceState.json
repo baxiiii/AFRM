@@ -3,9 +3,11 @@
     "",
     "\\AFRM",
     "\\AFRM\\.github",
-    "\\AFRM\\.github\\workflows",
-    "\\AFRM\\docs"
+    "\\AFRM\\data",
+    "\\AFRM\\src",
+    "\\AFRM\\tests",
+    "\\AFRM\\tests\\AFRM.Tests"
   ],
-  "SelectedNode": "\\AFRM\\vcpkg.json",
+  "SelectedNode": "\\AFRM\\data\\flights.csv",
   "PreviewInSolutionExplorer": false
 }
