@@ -20,23 +20,97 @@ namespace afrm {
             return std::uniform_int_distribution<int>(low, high)(rng);
         }
 
-        // Shared base flight with exact values: trip fuel 3600, alternate 1200,
-        // contingency 180 (5% of trip fuel equals 5 min holding, so this is also the
-        // crossover), final reserve 1080. Protected 2460, diversion protected 2280.
-        FlightRecord boundary(const char* id, double fuel_on_board_kg) {
-            return FlightRecord{ id, 1000.0, 200.0, 400.0, fuel_on_board_kg, 400.0, 2400.0, 2160.0 };
+        // 21 fixed boundary records: seven boundary flights in each of the three
+ // weight classes, followed by `record_count` random flights whose target
+ // status cycles NOMINAL, CAUTION, MINIMUM FUEL and FUEL EMERGENCY.
+        FlightRecord boundary(
+            const char* id,
+            double fuel_on_board_kg,
+            double aircraft_weight_kg) {
+
+            return FlightRecord{
+                id,
+                1000.0,
+                200.0,
+                400.0,
+                fuel_on_board_kg,
+                400.0,
+                2400.0,
+                2160.0,
+                aircraft_weight_kg
+            };
         }
 
         std::vector<FlightRecord> boundary_records() {
-            return {
-                boundary("BND-01", 6060.0),  // PFD 2460 = protected (NOMINAL threshold)
-                boundary("BND-02", 6059.0),  // 1 kg below
-                boundary("BND-03", 5880.0),  // PFD 2280 = diversion protected (CAUTION threshold)
-                boundary("BND-04", 5879.0),
-                boundary("BND-05", 4680.0),  // PFD 1080 = final reserve (MINIMUM FUEL threshold)
-                boundary("BND-06", 4679.0),
-                boundary("BND-07", 3000.0),  // negative PFD
+            const double weights[] = {
+                kLightAircraftWeightKg,
+                kMediumAircraftWeightKg,
+                kHeavyAircraftWeightKg
             };
+
+      
+
+            std::vector<FlightRecord> records;
+
+            for (double weight : weights) {
+                WeightClass weight_class =
+                    classify_aircraft_weight(weight);
+
+                const char* prefix = "BND-M";
+
+                if (weight_class == WeightClass::Light) {
+                    prefix = "BND-L";
+                }
+                else if (weight_class == WeightClass::Heavy) {
+                    prefix = "BND-H";
+                }
+
+                for (int i = 0; i < 7; ++i) {
+                    double fuel_on_board = 0.0;
+
+                    if (i == 0) fuel_on_board = 0.0;
+                    if (i == 1) fuel_on_board = 0.0;
+                }
+
+                records.push_back(boundary(
+                    weight_class == WeightClass::Light ? "BND-L-01" :
+                    weight_class == WeightClass::Medium ? "BND-01" : "BND-H-01",
+                    0.0,
+                    weight));
+
+                // The exact fuel values below are populated from the hand-worked
+                // threshold values for each class.
+                if (weight_class == WeightClass::Light) {
+                    records.clear();
+                    records.push_back(boundary("BND-L-01", 1515.0, weight));
+                    records.push_back(boundary("BND-L-02", 1514.0, weight));
+                    records.push_back(boundary("BND-L-03", 1435.0, weight));
+                    records.push_back(boundary("BND-L-04", 1434.0, weight));
+                    records.push_back(boundary("BND-L-05", 815.0, weight));
+                    records.push_back(boundary("BND-L-06", 814.0, weight));
+                    records.push_back(boundary("BND-L-07", 300.0, weight));
+                }
+                else if (weight_class == WeightClass::Medium) {
+                    records.push_back(boundary("BND-01", 6060.0, weight));
+                    records.push_back(boundary("BND-02", 6059.0, weight));
+                    records.push_back(boundary("BND-03", 5880.0, weight));
+                    records.push_back(boundary("BND-04", 5879.0, weight));
+                    records.push_back(boundary("BND-05", 4680.0, weight));
+                    records.push_back(boundary("BND-06", 4679.0, weight));
+                    records.push_back(boundary("BND-07", 3000.0, weight));
+                }
+                else {
+                    records.push_back(boundary("BND-H-01", 30300.0, weight));
+                    records.push_back(boundary("BND-H-02", 30299.0, weight));
+                    records.push_back(boundary("BND-H-03", 30280.0, weight));
+                    records.push_back(boundary("BND-H-04", 30279.0, weight));
+                    records.push_back(boundary("BND-H-05", 25880.0, weight));
+                    records.push_back(boundary("BND-H-06", 25879.0, weight));
+                    records.push_back(boundary("BND-H-07", 3000.0, weight));
+                }
+            }
+
+            return records;
         }
 
         // Picks whole-kg fuel on board so the PFD lands inside the target status band,
@@ -88,10 +162,17 @@ namespace afrm {
     void write_flights_csv(std::ostream& out, const std::vector<FlightRecord>& records) {
         out << kCsvHeader << '\n';
         for (const FlightRecord& r : records) {
-            out << std::format("{},{},{},{},{},{},{},{}\n", r.flight_id, r.trip_distance_nm,
-                r.alternate_distance_nm, r.distance_flown_nm, r.fuel_on_board_kg,
-                r.ground_speed_knots, r.cruise_flow_kg_per_hour,
-                r.holding_flow_kg_per_hour);
+            out << std::format(
+                "{},{},{},{},{},{},{},{},{}\n",
+                r.flight_id,
+                r.trip_distance_nm,
+                r.alternate_distance_nm,
+                r.distance_flown_nm,
+                r.fuel_on_board_kg,
+                r.ground_speed_knots,
+                r.cruise_flow_kg_per_hour,
+                r.holding_flow_kg_per_hour,
+                r.aircraft_weight_kg);
         }
     }
 
