@@ -27,7 +27,6 @@ namespace afrm {
             const char* id,
             double fuel_on_board_kg,
             double aircraft_weight_kg) {
-
             return FlightRecord{
                 id,
                 1000.0,
@@ -42,72 +41,59 @@ namespace afrm {
         }
 
         std::vector<FlightRecord> boundary_records() {
+            std::vector<FlightRecord> records;
+
             const double weights[] = {
-                kLightAircraftWeightKg,
                 kMediumAircraftWeightKg,
+                kLightAircraftWeightKg,
                 kHeavyAircraftWeightKg
             };
 
-      
-
-            std::vector<FlightRecord> records;
-
             for (double weight : weights) {
-                WeightClass weight_class =
-                    classify_aircraft_weight(weight);
-
-                const char* prefix = "BND-M";
-
-                if (weight_class == WeightClass::Light) {
-                    prefix = "BND-L";
-                }
-                else if (weight_class == WeightClass::Heavy) {
-                    prefix = "BND-H";
-                }
-
-                for (int i = 0; i < 7; ++i) {
-                    double fuel_on_board = 0.0;
-
-                    if (i == 0) fuel_on_board = 0.0;
-                    if (i == 1) fuel_on_board = 0.0;
-                }
+                FlightRecord base = boundary("BOUNDARY", 0.0, weight);
+                const FuelCalculation c = calculate_fuel(base);
 
                 records.push_back(boundary(
-                    weight_class == WeightClass::Light ? "BND-L-01" :
-                    weight_class == WeightClass::Medium ? "BND-01" : "BND-H-01",
-                    0.0,
+                    weight == kMediumAircraftWeightKg ? "BND-01" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-01" : "BND-H-01"),
+                    c.trip_fuel_to_go_kg + c.protected_fuel_kg,
                     weight));
 
-                // The exact fuel values below are populated from the hand-worked
-                // threshold values for each class.
-                if (weight_class == WeightClass::Light) {
-                    records.clear();
-                    records.push_back(boundary("BND-L-01", 1515.0, weight));
-                    records.push_back(boundary("BND-L-02", 1514.0, weight));
-                    records.push_back(boundary("BND-L-03", 1435.0, weight));
-                    records.push_back(boundary("BND-L-04", 1434.0, weight));
-                    records.push_back(boundary("BND-L-05", 815.0, weight));
-                    records.push_back(boundary("BND-L-06", 814.0, weight));
-                    records.push_back(boundary("BND-L-07", 300.0, weight));
-                }
-                else if (weight_class == WeightClass::Medium) {
-                    records.push_back(boundary("BND-01", 6060.0, weight));
-                    records.push_back(boundary("BND-02", 6059.0, weight));
-                    records.push_back(boundary("BND-03", 5880.0, weight));
-                    records.push_back(boundary("BND-04", 5879.0, weight));
-                    records.push_back(boundary("BND-05", 4680.0, weight));
-                    records.push_back(boundary("BND-06", 4679.0, weight));
-                    records.push_back(boundary("BND-07", 3000.0, weight));
-                }
-                else {
-                    records.push_back(boundary("BND-H-01", 30300.0, weight));
-                    records.push_back(boundary("BND-H-02", 30299.0, weight));
-                    records.push_back(boundary("BND-H-03", 30280.0, weight));
-                    records.push_back(boundary("BND-H-04", 30279.0, weight));
-                    records.push_back(boundary("BND-H-05", 25880.0, weight));
-                    records.push_back(boundary("BND-H-06", 25879.0, weight));
-                    records.push_back(boundary("BND-H-07", 3000.0, weight));
-                }
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-02" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-02" : "BND-H-02"),
+                    c.trip_fuel_to_go_kg + c.protected_fuel_kg - 1.0,
+                    weight));
+
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-03" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-03" : "BND-H-03"),
+                    c.trip_fuel_to_go_kg + c.diversion_protected_fuel_kg,
+                    weight));
+
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-04" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-04" : "BND-H-04"),
+                    c.trip_fuel_to_go_kg + c.diversion_protected_fuel_kg - 1.0,
+                    weight));
+
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-05" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-05" : "BND-H-05"),
+                    c.trip_fuel_to_go_kg + c.final_reserve_fuel_kg,
+                    weight));
+
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-06" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-06" : "BND-H-06"),
+                    c.trip_fuel_to_go_kg + c.final_reserve_fuel_kg - 1.0,
+                    weight));
+
+                records.push_back(boundary(
+                    weight == kMediumAircraftWeightKg ? "BND-07" :
+                    (weight == kLightAircraftWeightKg ? "BND-L-07" : "BND-H-07"),
+                    c.trip_fuel_to_go_kg - 600.0,
+                    weight));
             }
 
             return records;
@@ -153,7 +139,15 @@ namespace afrm {
             r.ground_speed_knots = pick(rng, 380, 480);
             r.cruise_flow_kg_per_hour = pick(rng, 2200, 2800);
             r.holding_flow_kg_per_hour = pick(rng, 2000, 2400);
-            r.fuel_on_board_kg = choose_fuel_kg(rng, r, targets[i % 4]);
+            const double weights[] = {
+                kLightAircraftWeightKg,
+                kMediumAircraftWeightKg,
+                kHeavyAircraftWeightKg
+            };
+
+            r.aircraft_weight_kg = weights[i % 3];
+            r.fuel_on_board_kg =
+                choose_fuel_kg(rng, r, targets[i % 4]);
             records.push_back(std::move(r));
         }
         return records;
