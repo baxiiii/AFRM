@@ -13,9 +13,16 @@ namespace afrm {
         if (r.flight_id.empty()) return ValidationResult::fail("flight_id is empty");
 
         // NaN passes every < and <= test, so check for finite values first.
-        const double numbers[] = { r.trip_distance_nm, r.alternate_distance_nm, r.distance_flown_nm,
-                                  r.fuel_on_board_kg, r.ground_speed_knots,
-                                  r.cruise_flow_kg_per_hour, r.holding_flow_kg_per_hour };
+        const double numbers[] = {
+            r.trip_distance_nm,
+            r.alternate_distance_nm,
+            r.distance_flown_nm,
+            r.fuel_on_board_kg,
+            r.ground_speed_knots,
+            r.cruise_flow_kg_per_hour,
+            r.holding_flow_kg_per_hour,
+            r.aircraft_weight_kg
+        };
         for (double n : numbers) {
             if (!std::isfinite(n)) return ValidationResult::fail("a numeric field is not a finite number");
         }
@@ -29,7 +36,45 @@ namespace afrm {
         if (r.ground_speed_knots <= 0.0)   return ValidationResult::fail("ground_speed_knots must be greater than zero");
         if (r.cruise_flow_kg_per_hour <= 0.0)  return ValidationResult::fail("cruise_flow_kg_per_hour must be greater than zero");
         if (r.holding_flow_kg_per_hour <= 0.0) return ValidationResult::fail("holding_flow_kg_per_hour must be greater than zero");
+
+        if (!is_supported_aircraft_weight(r.aircraft_weight_kg)) {
+            return ValidationResult::fail(
+                "aircraft_weight_kg must be 5000, 20000 or 100000");
+        }
+
         return ValidationResult::ok();
+    }
+
+    //
+
+    bool is_supported_aircraft_weight(double aircraft_weight_kg) {
+        return aircraft_weight_kg == kLightAircraftWeightKg ||
+            aircraft_weight_kg == kMediumAircraftWeightKg ||
+            aircraft_weight_kg == kHeavyAircraftWeightKg;
+    }
+
+    WeightClass classify_aircraft_weight(double aircraft_weight_kg) {
+        if (aircraft_weight_kg == kLightAircraftWeightKg) {
+            return WeightClass::Light;
+        }
+
+        if (aircraft_weight_kg == kHeavyAircraftWeightKg) {
+            return WeightClass::Heavy;
+        }
+
+        return WeightClass::Medium;
+    }
+
+    double weight_burn_multiplier(double aircraft_weight_kg) {
+        switch (classify_aircraft_weight(aircraft_weight_kg)) {
+        case WeightClass::Light:
+            return kLightBurnMultiplier;
+        case WeightClass::Medium:
+            return kMediumBurnMultiplier;
+        case WeightClass::Heavy:
+            return kHeavyBurnMultiplier;
+        }
+        return kMediumBurnMultiplier;
     }
 
     double round_up_to_whole_kg(double quantity_kg) {
@@ -40,24 +85,51 @@ namespace afrm {
     FuelCalculation calculate_fuel(const FlightRecord& r) {
         FuelCalculation c;
 
-        const double remaining_distance_nm = r.trip_distance_nm - r.distance_flown_nm;
-        c.trip_fuel_to_go_kg = remaining_distance_nm / r.ground_speed_knots * r.cruise_flow_kg_per_hour;
+        const double multiplier =
+            weight_burn_multiplier(r.aircraft_weight_kg);
+
+        const double effective_cruise_flow =
+            r.cruise_flow_kg_per_hour * multiplier;
+
+        const double effective_holding_flow =
+            r.holding_flow_kg_per_hour * multiplier;
+
+        const double remaining_distance_nm =
+            r.trip_distance_nm - r.distance_flown_nm;
+
+        c.trip_fuel_to_go_kg =
+            remaining_distance_nm / r.ground_speed_knots *
+            effective_cruise_flow;
 
         c.alternate_fuel_kg = round_up_to_whole_kg(
-            r.alternate_distance_nm / r.ground_speed_knots * r.cruise_flow_kg_per_hour);
+            r.alternate_distance_nm / r.ground_speed_knots *
+            effective_cruise_flow);
 
-        // Contingency: the larger of 5% of trip fuel and 5 minutes of holding fuel.
-        const double five_percent_kg = kContingencyFraction * c.trip_fuel_to_go_kg;
+        const double five_percent_kg =
+            kContingencyFraction * c.trip_fuel_to_go_kg;
+
         const double five_minutes_kg =
-            r.holding_flow_kg_per_hour * (kContingencyMinHoldingMinutes / kMinutesPerHour);
-        c.contingency_fuel_kg = round_up_to_whole_kg(std::max(five_percent_kg, five_minutes_kg));
+            effective_holding_flow *
+            (kContingencyMinHoldingMinutes / kMinutesPerHour);
+
+        c.contingency_fuel_kg =
+            round_up_to_whole_kg(
+                std::max(five_percent_kg, five_minutes_kg));
 
         c.final_reserve_fuel_kg = round_up_to_whole_kg(
-            r.holding_flow_kg_per_hour * (kFinalReserveHoldingMinutes / kMinutesPerHour));
+            effective_holding_flow *
+            (kFinalReserveHoldingMinutes / kMinutesPerHour));
 
-        c.predicted_fuel_at_destination_kg = r.fuel_on_board_kg - c.trip_fuel_to_go_kg;
-        c.diversion_protected_fuel_kg = c.alternate_fuel_kg + c.final_reserve_fuel_kg;
-        c.protected_fuel_kg = c.contingency_fuel_kg + c.diversion_protected_fuel_kg;
+        c.predicted_fuel_at_destination_kg =
+            r.fuel_on_board_kg - c.trip_fuel_to_go_kg;
+
+        c.diversion_protected_fuel_kg =
+            c.alternate_fuel_kg + c.final_reserve_fuel_kg;
+
+        c.protected_fuel_kg =
+            c.contingency_fuel_kg +
+            c.diversion_protected_fuel_kg;
+
         return c;
     }
 

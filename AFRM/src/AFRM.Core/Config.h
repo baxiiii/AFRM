@@ -20,10 +20,24 @@ namespace afrm {
     // Stops floating-point noise (e.g. 150.00000000000003) rounding up an extra kg.
     inline constexpr double kRoundingNoiseKg = 1e-9;
 
+
+    // Model limitations: no wind, constant ground speed, fixed burn multipliers,
+// no climb/descent, no taxi fuel or continuous weight-dependent interpolation.
+
     inline constexpr std::string_view kCsvHeader =
         "flight_id,trip_distance_nm,alternate_distance_nm,distance_flown_nm,"
         "fuel_on_board_kg,ground_speed_knots,cruise_flow_kg_per_hour,holding_flow_kg_per_hour";
+
     inline constexpr std::size_t kCsvColumnCount = 8;
+
+    inline constexpr double kLightAircraftWeightKg = 5000.0;
+    inline constexpr double kMediumAircraftWeightKg = 20000.0;
+    inline constexpr double kHeavyAircraftWeightKg = 100000.0;
+
+    inline constexpr double kLightBurnMultiplier = 0.25;
+    inline constexpr double kMediumBurnMultiplier = 1.0;
+    inline constexpr double kHeavyBurnMultiplier = 5.0;
+
     inline constexpr std::string_view kDefaultDatasetRelativePath = "data/flights.csv";
 
     inline constexpr std::uint32_t kDefaultSeed = 20260601;
