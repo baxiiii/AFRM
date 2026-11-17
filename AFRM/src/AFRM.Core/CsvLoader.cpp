@@ -51,24 +51,36 @@ namespace afrm {
 
     ValidationResult parse_flight_row(std::string_view line, FlightRecord& record) {
         const auto fields = split_on_commas(line);
+
         if (fields.size() != kCsvColumnCount) {
-            return ValidationResult::fail("expected " + std::to_string(kCsvColumnCount) +
+            return ValidationResult::fail(
+                "expected " + std::to_string(kCsvColumnCount) +
                 " fields but found " + std::to_string(fields.size()));
         }
 
         static constexpr const char* names[] = {
-            "trip_distance_nm", "alternate_distance_nm", "distance_flown_nm", "fuel_on_board_kg",
-            "ground_speed_knots", "cruise_flow_kg_per_hour", "holding_flow_kg_per_hour" };
-        double v[7] = {};
-        for (std::size_t i = 0; i < 7; ++i) {
+            "trip_distance_nm", "alternate_distance_nm", "distance_flown_nm",
+            "fuel_on_board_kg", "ground_speed_knots", "cruise_flow_kg_per_hour",
+            "holding_flow_kg_per_hour", "aircraft_weight_kg"
+        };
+
+        double v[8] = {};
+
+        for (std::size_t i = 0; i < 8; ++i) {
             if (!parse_double(trim(fields[i + 1]), v[i])) {
-                return ValidationResult::fail(std::string(names[i]) + " is missing or not a number");
+                return ValidationResult::fail(
+                    std::string(names[i]) + " is missing or not a number");
             }
         }
 
-        record = FlightRecord{ std::string(trim(fields[0])), v[0], v[1], v[2], v[3], v[4], v[5], v[6] };
+        record = FlightRecord{
+            std::string(trim(fields[0])),
+            v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]
+        };
+
         return ValidationResult::ok();
     }
+
 
     LoadResult load_flights_from_stream(std::istream& input) {
         LoadResult result;

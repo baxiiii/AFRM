@@ -26,9 +26,10 @@ namespace afrm {
 
     inline constexpr std::string_view kCsvHeader =
         "flight_id,trip_distance_nm,alternate_distance_nm,distance_flown_nm,"
-        "fuel_on_board_kg,ground_speed_knots,cruise_flow_kg_per_hour,holding_flow_kg_per_hour";
+        "fuel_on_board_kg,ground_speed_knots,cruise_flow_kg_per_hour,"
+        "holding_flow_kg_per_hour,aircraft_weight_kg";
 
-    inline constexpr std::size_t kCsvColumnCount = 8;
+    inline constexpr std::size_t kCsvColumnCount = 9;
 
     inline constexpr double kLightAircraftWeightKg = 5000.0;
     inline constexpr double kMediumAircraftWeightKg = 20000.0;
