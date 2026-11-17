@@ -16,7 +16,8 @@ using namespace afrm_test;
 
 namespace {
 
-    const std::string kValidRow = "AF1001,1000,200,400,6060,400,2400,2160";
+    const std::string kValidRow =
+        "AF1001,1000,200,400,6060,400,2400,2160,20000";
 
     std::string header_line() { return std::string(kCsvHeader) + "\n"; }
 
@@ -29,7 +30,7 @@ namespace {
 
 TEST(CsvLoader, REQ_DATA_01_ValidRowsLoaded) {
     const LoadResult result =
-        load_text(header_line() + kValidRow + "\n" + "AF1002,800,100,300,5000,420,2520,2100\n");
+        load_text(header_line() + kValidRow + "\n" + "AF1002,800,100,300,5000,420,2520,2100,20000\n");
     ASSERT_TRUE(result.file_error.empty()) << result.file_error;
     EXPECT_EQ(result.records.size(), 2u);
     EXPECT_TRUE(result.rejected.empty());
@@ -46,7 +47,7 @@ TEST(CsvLoader, REQ_DATA_01_ValidRowsLoaded) {
 }
 
 TEST(CsvLoader, REQ_DATA_01_DecimalsSpacesAndCrLfAccepted) {
-    const LoadResult spaced = load_text(header_line() + "AF7, 1000.5 ,200,400,6060.25,400,2400,2160\n");
+    const LoadResult spaced = load_text(header_line() + "AF7, 1000.5 ,200,400,6060.25,400,2400,2160,20000\n");
     ASSERT_EQ(spaced.records.size(), 1u);
     EXPECT_NEAR(spaced.records[0].trip_distance_nm, 1000.5, kTolerance);
 
@@ -61,20 +62,20 @@ TEST(CsvLoader, REQ_DATA_01_EachInvalidRowIsRejectedWithLineAndReason) {
         const char* row;
     };
     const std::vector<BadRow> rows = {
-        {"too few fields", "AF1,1000,200,400,6060,400,2400"},
-        {"too many fields", "AF1,1000,200,400,6060,400,2400,2160,5"},
-        {"empty numeric field", "AF1,1000,200,400,,400,2400,2160"},
-        {"letters instead of number", "AF1,abc,200,400,6060,400,2400,2160"},
-        {"trailing characters", "AF1,1000x,200,400,6060,400,2400,2160"},
-        {"empty flight id", ",1000,200,400,6060,400,2400,2160"},
-        {"negative distance", "AF1,-1000,200,400,6060,400,2400,2160"},
-        {"distance flown exceeds trip", "AF1,1000,200,1500,6060,400,2400,2160"},
-        {"negative fuel", "AF1,1000,200,400,-5,400,2400,2160"},
-        {"zero speed", "AF1,1000,200,400,6060,0,2400,2160"},
-        {"zero cruise flow", "AF1,1000,200,400,6060,400,0,2160"},
-        {"zero holding flow", "AF1,1000,200,400,6060,400,2400,0"},
-        {"NaN fuel", "AF1,1000,200,400,nan,400,2400,2160"},
-        {"infinite distance", "AF1,inf,200,400,6060,400,2400,2160"},
+        {"too few fields", "AF1,1000,200,400,6060,400,2400,20000"},
+        {"too many fields", "AF1,1000,200,400,6060,400,2400,2160,5,20000"},
+        {"empty numeric field", "AF1,1000,200,400,,400,2400,2160,20000"},
+        {"letters instead of number", "AF1,abc,200,400,6060,400,2400,2160,20000"},
+        {"trailing characters", "AF1,1000x,200,400,6060,400,2400,2160,20000"},
+        {"empty flight id", ",1000,200,400,6060,400,2400,2160,20000"},
+        {"negative distance", "AF1,-1000,200,400,6060,400,2400,2160,20000"},
+        {"distance flown exceeds trip", "AF1,1000,200,1500,6060,400,2400,2160,20000"},
+        {"negative fuel", "AF1,1000,200,400,-5,400,2400,2160,20000"},
+        {"zero speed", "AF1,1000,200,400,6060,0,2400,2160,20000"},
+        {"zero cruise flow", "AF1,1000,200,400,6060,400,0,2160,20000"},
+        {"zero holding flow", "AF1,1000,200,400,6060,400,2400,0,20000"},
+        {"NaN fuel", "AF1,1000,200,400,nan,400,2400,2160,20000"},
+        {"infinite distance", "AF1,inf,200,400,6060,400,2400,2160,20000"},
     };
 
     for (const BadRow& bad : rows) {
@@ -91,10 +92,10 @@ TEST(CsvLoader, REQ_DATA_01_EachInvalidRowIsRejectedWithLineAndReason) {
 TEST(CsvLoader, REQ_DATA_01_InvalidRowsDoNotLoseValidRows) {
     const std::string text = header_line() +
         kValidRow + "\n" +                         // line 2: valid
-        "AF2,abc,200,400,6060,400,2400,2160\n" +   // line 3: bad number
+        "AF2,abc,200,400,6060,400,2400,2160,20000\n" +   // line 3: bad number
         "\n" +                                     // line 4: blank, skipped
-        "AF3,1000,200,400,6000,400,2400,2160\n" +  // line 5: valid
-        "AF4,1000,200,400,6000,0,2400,2160\n";     // line 6: zero speed
+        "AF3,1000,200,400,6000,400,2400,2160,20000\n" +  // line 5: valid
+        "AF4,1000,200,400,6000,0,2400,2160,20000\n";     // line 6: zero speed
     const LoadResult result = load_text(text);
 
     ASSERT_TRUE(result.file_error.empty());
@@ -118,4 +119,80 @@ TEST(CsvLoader, REQ_DATA_01_MissingFileReportsError) {
     const LoadResult result = load_flights_from_file("afrm_tests_no_such_file.csv");
     EXPECT_FALSE(result.file_error.empty());
     EXPECT_TRUE(result.records.empty());
+}
+
+TEST(CsvLoader, REQ_WEIGHT_02_ValidWeightsLoaded) {
+    const std::string text =
+        header_line() +
+        "LIGHT,1000,200,400,6060,400,2400,2160,5000\n"
+        "MEDIUM,1000,200,400,6060,400,2400,2160,20000\n"
+        "HEAVY,1000,200,400,6060,400,2400,2160,100000\n";
+
+    const LoadResult result = load_text(text);
+
+    ASSERT_TRUE(result.file_error.empty());
+    ASSERT_EQ(result.records.size(), 3u);
+    EXPECT_TRUE(result.rejected.empty());
+
+    EXPECT_DOUBLE_EQ(
+        result.records[0].aircraft_weight_kg,
+        kLightAircraftWeightKg);
+
+    EXPECT_DOUBLE_EQ(
+        result.records[1].aircraft_weight_kg,
+        kMediumAircraftWeightKg);
+
+    EXPECT_DOUBLE_EQ(
+        result.records[2].aircraft_weight_kg,
+        kHeavyAircraftWeightKg);
+}
+
+TEST(CsvLoader,
+    REQ_WEIGHT_02_UnsupportedWeightRejectedWithLineAndReason) {
+    const char* unsupported_rows[] = {
+        "AF1,1000,200,400,6060,400,2400,2160,15000",
+        "AF1,1000,200,400,6060,400,2400,2160,",
+        "AF1,1000,200,400,6060,400,2400,2160,heavy"
+    };
+
+    for (const char* row : unsupported_rows) {
+        SCOPED_TRACE(row);
+
+        const LoadResult result = load_text(header_line() + row + "\n");
+
+        ASSERT_TRUE(result.file_error.empty());
+        EXPECT_TRUE(result.records.empty());
+        ASSERT_EQ(result.rejected.size(), 1u);
+        EXPECT_EQ(result.rejected[0].line_number, 2u);
+        EXPECT_FALSE(result.rejected[0].reason.empty());
+        EXPECT_NE(
+            result.rejected[0].reason.find("aircraft_weight_kg"),
+            std::string::npos);
+    }
+}
+
+TEST(CsvLoader, REQ_WEIGHT_02_NineColumnHeaderRequired) {
+    const LoadResult result = load_text(
+        header_line() + kValidRow + "\n");
+
+    ASSERT_TRUE(result.file_error.empty());
+    ASSERT_EQ(result.records.size(), 1u);
+    EXPECT_DOUBLE_EQ(
+        result.records[0].aircraft_weight_kg,
+        kMediumAircraftWeightKg);
+}
+
+TEST(CsvLoader, REQ_WEIGHT_02_EightColumnFileRejected) {
+    const std::string old_header =
+        "flight_id,trip_distance_nm,alternate_distance_nm,"
+        "distance_flown_nm,fuel_on_board_kg,ground_speed_knots,"
+        "cruise_flow_kg_per_hour,holding_flow_kg_per_hour";
+
+    const LoadResult result = load_text(
+        old_header + "\n" +
+        "AF1,1000,200,400,6060,400,2400,2160\n");
+
+    EXPECT_FALSE(result.file_error.empty());
+    EXPECT_TRUE(result.records.empty());
+    EXPECT_TRUE(result.rejected.empty());
 }
