@@ -11,6 +11,12 @@
 
 namespace afrm {
 
+    enum class WeightClass {
+        Light,
+        Medium,
+        Heavy
+    };
+
     struct FlightRecord {
         std::string flight_id;
         double trip_distance_nm = 0.0;
@@ -20,6 +26,7 @@ namespace afrm {
         double ground_speed_knots = 0.0;
         double cruise_flow_kg_per_hour = 0.0;
         double holding_flow_kg_per_hour = 0.0;
+        double aircraft_weight_kg = 20000.0;
     };
 
     struct ValidationResult {

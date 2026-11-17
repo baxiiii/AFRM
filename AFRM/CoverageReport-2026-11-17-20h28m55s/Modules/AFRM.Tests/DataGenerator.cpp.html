@@ -1,0 +1,125 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+        <meta charset="utf-8"/>
+	    <title>DataGenerator.cpp</title>
+	    <link href="../../third-party/google-code-prettify/prettify-CppCoverage.css" type="text/css" rel="stylesheet" />
+	    <script type="text/javascript" src="../../third-party/google-code-prettify/prettify.js"></script>
+	</head>
+    <body onload="prettyPrint()">
+        <h4></h4>
+        <pre class="prettyprint lang-cpp linenums">
+// DataGenerator.cpp
+#include "DataGenerator.h"
+
+#include &lt;algorithm&gt;
+#include &lt;cmath&gt;
+#include &lt;cstdint&gt;
+#include &lt;format&gt;  // C++20; std::format ignores the system locale
+#include &lt;fstream&gt;
+#include &lt;random&gt;
+#include &lt;utility&gt;
+
+#include "pch.h"
+#include "Calculations.h"
+
+namespace afrm {
+
+    namespace {
+
+<span style = "background-color:#dfd">        int pick(std::mt19937&amp; rng, int low, int high) {
+            return std::uniform_int_distribution&lt;int&gt;(low, high)(rng);
+        }</span>
+
+        // Shared base flight with exact values: trip fuel 3600, alternate 1200,
+        // contingency 180 (5% of trip fuel equals 5 min holding, so this is also the
+        // crossover), final reserve 1080. Protected 2460, diversion protected 2280.
+<span style = "background-color:#dfd">        FlightRecord boundary(const char* id, double fuel_on_board_kg) {
+            return FlightRecord{ id, 1000.0, 200.0, 400.0, fuel_on_board_kg, 400.0, 2400.0, 2160.0 };
+        }</span>
+
+<span style = "background-color:#dfd">        std::vector&lt;FlightRecord&gt; boundary_records() {
+            return {</span>
+                boundary("BND-01", 6060.0),  // PFD 2460 = protected (NOMINAL threshold)
+                boundary("BND-02", 6059.0),  // 1 kg below
+                boundary("BND-03", 5880.0),  // PFD 2280 = diversion protected (CAUTION threshold)
+                boundary("BND-04", 5879.0),
+                boundary("BND-05", 4680.0),  // PFD 1080 = final reserve (MINIMUM FUEL threshold)
+                boundary("BND-06", 4679.0),
+                boundary("BND-07", 3000.0),  // negative PFD
+            };
+<span style = "background-color:#dfd">        }</span>
+
+        // Picks whole-kg fuel on board so the PFD lands inside the target status band,
+        // at least 1 kg clear of each threshold.
+<span style = "background-color:#dfd">        double choose_fuel_kg(std::mt19937&amp; rng, const FlightRecord&amp; base, FuelStatus target) {
+            const FuelCalculation c = calculate_fuel(base);  // base has zero fuel, which is valid
+            const int protected_kg = static_cast&lt;int&gt;(c.protected_fuel_kg);
+            const int diversion_kg = static_cast&lt;int&gt;(c.diversion_protected_fuel_kg);
+            const int reserve_kg = static_cast&lt;int&gt;(c.final_reserve_fuel_kg);
+            const int trip_fuel_kg = static_cast&lt;int&gt;(std::ceil(c.trip_fuel_to_go_kg));</span>
+
+<span style = "background-color:#dfd">            int pfd_kg = 0;
+            switch (target) {
+            case FuelStatus::Nominal:       pfd_kg = protected_kg + pick(rng, 0, 1500); break;
+            case FuelStatus::Caution:       pfd_kg = diversion_kg + pick(rng, 0, protected_kg - diversion_kg - 2); break;
+            case FuelStatus::MinimumFuel:   pfd_kg = reserve_kg + pick(rng, 0, diversion_kg - reserve_kg - 2); break;
+            case FuelStatus::FuelEmergency: pfd_kg = reserve_kg - 2 - pick(rng, 0, reserve_kg + 600); break;</span>
+            }
+<span style = "background-color:#dfd">            return static_cast&lt;double&gt;(std::max(0, trip_fuel_kg + pfd_kg));  // fuel can't be negative
+        }</span>
+
+    }  // namespace
+
+<span style = "background-color:#dfd">    std::vector&lt;FlightRecord&gt; generate_flights(std::uint32_t seed, int record_count) {
+        std::vector&lt;FlightRecord&gt; records = boundary_records();</span>
+
+<span style = "background-color:#dfd">        std::mt19937 rng(seed);
+        const FuelStatus targets[] = { FuelStatus::Nominal, FuelStatus::Caution,
+                                      FuelStatus::MinimumFuel, FuelStatus::FuelEmergency };</span>
+
+<span style = "background-color:#dfd">        for (int i = 0; i &lt; record_count; ++i) {
+            const int trip = pick(rng, 300, 2500);
+            const int percent_flown = pick(rng, 10, 70);</span>
+
+<span style = "background-color:#dfd">            FlightRecord r;
+            r.flight_id = std::format("AF{:04d}", 1001 + i);
+            r.trip_distance_nm = trip;
+            r.distance_flown_nm = trip * percent_flown / 100;  // whole nm
+            r.alternate_distance_nm = pick(rng, 50, 250);
+            r.ground_speed_knots = pick(rng, 380, 480);
+            r.cruise_flow_kg_per_hour = pick(rng, 2200, 2800);
+            r.holding_flow_kg_per_hour = pick(rng, 2000, 2400);
+            r.fuel_on_board_kg = choose_fuel_kg(rng, r, targets[i % 4]);
+            records.push_back(std::move(r));
+        }
+        return records;
+    }</span>
+
+<span style = "background-color:#dfd">    void write_flights_csv(std::ostream&amp; out, const std::vector&lt;FlightRecord&gt;&amp; records) {
+        out &lt;&lt; kCsvHeader &lt;&lt; '\n';
+        for (const FlightRecord&amp; r : records) {
+            out &lt;&lt; std::format("{},{},{},{},{},{},{},{}\n", r.flight_id, r.trip_distance_nm,</span>
+                r.alternate_distance_nm, r.distance_flown_nm, r.fuel_on_board_kg,
+                r.ground_speed_knots, r.cruise_flow_kg_per_hour,
+                r.holding_flow_kg_per_hour);
+<span style = "background-color:#dfd">        }
+    }</span>
+
+}  // namespace afrm
+//s</pre>
+        <hr />
+        <table width="100%">
+            <thead>
+                <tr>
+                    <th align="center">
+                        <small>Generated by</small>
+                        <a href="https://github.com/OpenCppCoverage/OpenCppCoverage/releases">
+                            <strong>OpenCppCoverage (Version: 0.9.9.0)</strong>
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+        </table>
+    </body>
+</html>

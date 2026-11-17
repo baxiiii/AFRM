@@ -15,4 +15,8 @@ namespace afrm {
 	// Call only with a record that passed validate_flight_record().
 	FuelCalculation calculate_fuel(const FlightRecord& record);
 
+	//
+	WeightClass classify_aircraft_weight(double aircraft_weight_kg);
+	bool is_supported_aircraft_weight(double aircraft_weight_kg);
+	double weight_burn_multiplier(double aircraft_weight_kg);
 }  // namespace afrm
