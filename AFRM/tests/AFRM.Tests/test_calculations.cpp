@@ -63,6 +63,10 @@ TEST(Calculations, REQ_CALC_01_InvalidInputsRejected) {
         {"zero holding flow", [](FlightRecord& r) { r.holding_flow_kg_per_hour = 0.0; }},
         {"NaN fuel on board", [kNaN](FlightRecord& r) { r.fuel_on_board_kg = kNaN; }},
         {"infinite trip distance", [kInf](FlightRecord& r) { r.trip_distance_nm = kInf; }},
+        {"unsupported aircraft weight",[](FlightRecord& r) { r.aircraft_weight_kg = 15000.0; }},
+        {"zero aircraft weight",[](FlightRecord& r) { r.aircraft_weight_kg = 0.0; }},
+        {"negative aircraft weight",[](FlightRecord& r) { r.aircraft_weight_kg = -5000.0; }},
+        {"NaN aircraft weight",[kNaN](FlightRecord& r) { r.aircraft_weight_kg = kNaN; }},
     };
 
     for (const InvalidCase& test_case : cases) {
@@ -200,28 +204,28 @@ TEST(Calculations, REQ_WEIGHT_01_LightAndHeavyScaleBothFlows) {
 }
 
 TEST(Calculations, REQ_WEIGHT_01_ReservesFollowClass) {
-    FlightRecord light = make_base_flight();
-    light.aircraft_weight_kg = kLightAircraftWeightKg;
+    FlightRecord light_flight = make_base_flight();
+    light_flight.aircraft_weight_kg = kLightAircraftWeightKg;
 
-    FlightRecord medium = make_base_flight();
-    medium.aircraft_weight_kg = kMediumAircraftWeightKg;
+    FlightRecord medium_flight = make_base_flight();
+    medium_flight.aircraft_weight_kg = kMediumAircraftWeightKg;
 
-    FlightRecord heavy = make_base_flight();
-    heavy.aircraft_weight_kg = kHeavyAircraftWeightKg;
+    FlightRecord heavy_flight = make_base_flight();
+    heavy_flight.aircraft_weight_kg = kHeavyAircraftWeightKg;
 
-    const FuelCalculation light = calculate_fuel(light);
-    const FuelCalculation medium = calculate_fuel(medium);
-    const FuelCalculation heavy = calculate_fuel(heavy);
+    const FuelCalculation light_result = calculate_fuel(light_flight);
+    const FuelCalculation medium_result = calculate_fuel(medium_flight);
+    const FuelCalculation heavy_result = calculate_fuel(heavy_flight);
 
-    EXPECT_DOUBLE_EQ(light.contingency_fuel_kg, 45.0);
-    EXPECT_DOUBLE_EQ(light.final_reserve_fuel_kg, 270.0);
-    EXPECT_DOUBLE_EQ(light.protected_fuel_kg, 615.0);
+    EXPECT_DOUBLE_EQ(light_result.contingency_fuel_kg, 45.0);
+    EXPECT_DOUBLE_EQ(light_result.final_reserve_fuel_kg, 270.0);
+    EXPECT_DOUBLE_EQ(light_result.protected_fuel_kg, 615.0);
 
-    EXPECT_DOUBLE_EQ(medium.contingency_fuel_kg, 180.0);
-    EXPECT_DOUBLE_EQ(medium.final_reserve_fuel_kg, 1080.0);
-    EXPECT_DOUBLE_EQ(medium.protected_fuel_kg, 2460.0);
+    EXPECT_DOUBLE_EQ(medium_result.contingency_fuel_kg, 180.0);
+    EXPECT_DOUBLE_EQ(medium_result.final_reserve_fuel_kg, 1080.0);
+    EXPECT_DOUBLE_EQ(medium_result.protected_fuel_kg, 2460.0);
 
-    EXPECT_DOUBLE_EQ(heavy.contingency_fuel_kg, 900.0);
-    EXPECT_DOUBLE_EQ(heavy.final_reserve_fuel_kg, 5400.0);
-    EXPECT_DOUBLE_EQ(heavy.protected_fuel_kg, 12300.0);
+    EXPECT_DOUBLE_EQ(heavy_result.contingency_fuel_kg, 900.0);
+    EXPECT_DOUBLE_EQ(heavy_result.final_reserve_fuel_kg, 5400.0);
+    EXPECT_DOUBLE_EQ(heavy_result.protected_fuel_kg, 12300.0);
 }
