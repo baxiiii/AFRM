@@ -8,6 +8,7 @@
 #include "Assessment.h"
 #include "Calculations.h"
 #include "test_helpers.h"
+#include "config.h"
 
 using namespace afrm;
 using namespace afrm_test;
@@ -117,39 +118,55 @@ TEST(Assessment, REQ_PFD_01_RoundingNeverMakesMarginalCaseSafer) {
     EXPECT_EQ(assess_fuel_status(c).status, FuelStatus::Caution);
 }
 
-// ---- Difference in fuel assessment due to aircraft weight --------------------------------
+TEST(Assessment, REQ_WEIGHT_01_ThresholdsExactAtEachClass) {
+    struct WeightCase {
+        double weight;
+        double fuel_on_board;
+    };
 
-TEST(Assessment, REQ_WEIGHT_00_AircraftWeightDoesNotAffectFuelAssessment) {
-    // Hypothetical weights only. The current FlightRecord model does not
-    // contain an aircraft-weight field.
-    constexpr double light_aircraft_weight_kg = 5000.0;
-    constexpr double heavy_aircraft_weight_kg = 100000.0;
+    const WeightCase cases[] = {
+        {kLightAircraftWeightKg, 1515.0},
+        {kMediumAircraftWeightKg, 6060.0},
+        {kHeavyAircraftWeightKg, 30300.0}
+    };
 
-    // The current AFRM model receives identical performance inputs for both
-    // hypothetical aircraft.
-    FlightRecord light_aircraft = make_base_flight();
-    FlightRecord heavy_aircraft = make_base_flight();
+    for (const WeightCase& test_case : cases) {
+        SCOPED_TRACE(test_case.weight);
 
-    const FuelCalculation light_calculation =
-        calculate_fuel(light_aircraft);
+        FlightRecord light_or_heavy = make_base_flight();
+        light_or_heavy.aircraft_weight_kg = test_case.weight;
+        light_or_heavy.fuel_on_board_kg = test_case.fuel_on_board;
 
-    const FuelCalculation heavy_calculation =
-        calculate_fuel(heavy_aircraft);
+        const FuelCalculation c = calculate_fuel(light_or_heavy);
+        EXPECT_EQ(
+            assess_fuel_status(c).status,
+            FuelStatus::Nominal);
 
-    const FuelAssessment light_assessment =
-        assess_fuel_status(light_calculation);
+        light_or_heavy.fuel_on_board_kg -= 1.0;
 
-    const FuelAssessment heavy_assessment =
-        assess_fuel_status(heavy_calculation);
+        const FuelCalculation below = calculate_fuel(light_or_heavy);
+        EXPECT_EQ(
+            assess_fuel_status(below).status,
+            FuelStatus::Caution);
+    }
+}
 
-    (void)light_aircraft_weight_kg;
-    (void)heavy_aircraft_weight_kg;
+TEST(Assessment, REQ_WEIGHT_01_SameFlightDifferentStatusByClass) {
+    FlightRecord flight = make_base_flight();
+    flight.fuel_on_board_kg = 6060.0;
 
+    flight.aircraft_weight_kg = kLightAircraftWeightKg;
     EXPECT_EQ(
-        light_assessment.status,
-        heavy_assessment.status);
+        assess_fuel_status(calculate_fuel(flight)).status,
+        FuelStatus::Nominal);
 
+    flight.aircraft_weight_kg = kMediumAircraftWeightKg;
     EXPECT_EQ(
-        light_assessment.explanation,
-        heavy_assessment.explanation);
+        assess_fuel_status(calculate_fuel(flight)).status,
+        FuelStatus::Nominal);
+
+    flight.aircraft_weight_kg = kHeavyAircraftWeightKg;
+    EXPECT_EQ(
+        assess_fuel_status(calculate_fuel(flight)).status,
+        FuelStatus::FuelEmergency);
 }

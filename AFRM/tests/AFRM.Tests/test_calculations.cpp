@@ -9,6 +9,7 @@
 
 #include "Calculations.h"
 #include "test_helpers.h"
+#include "Config.h"
 
 using namespace afrm;
 using namespace afrm_test;
@@ -149,52 +150,78 @@ TEST(Calculations, REQ_PFD_01_FuelOnBoardMinusTripFuelToGo) {
 
 
 
-// ---- Difference in fuel assessment due to aircraft weight --------------------------------
+TEST(Calculations, REQ_WEIGHT_01_MediumMatchesBaseline) {
+    FlightRecord medium = make_base_flight();
+    medium.aircraft_weight_kg = kMediumAircraftWeightKg;
 
+    const FuelCalculation c = calculate_fuel(medium);
 
-TEST(Calculations, REQ_WEIGHT_00_AircraftWeightDoesNotAffectFuelCalculation) {
-    // Hypothetical weights only. The current FlightRecord model does not
-    // contain an aircraft-weight field.
-    constexpr double light_aircraft_weight_kg = 5000.0;
-    constexpr double heavy_aircraft_weight_kg = 100000.0;
+    EXPECT_NEAR(c.trip_fuel_to_go_kg, 3600.0, kTolerance);
+    EXPECT_NEAR(c.alternate_fuel_kg, 1200.0, kTolerance);
+    EXPECT_NEAR(c.contingency_fuel_kg, 180.0, kTolerance);
+    EXPECT_NEAR(c.final_reserve_fuel_kg, 1080.0, kTolerance);
+    EXPECT_NEAR(c.predicted_fuel_at_destination_kg, 2460.0, kTolerance);
+}
 
-    // These records are otherwise identical because the current application
-    // has no mechanism to pass aircraft weight into the calculation.
-    FlightRecord light_aircraft = make_base_flight();
-    FlightRecord heavy_aircraft = make_base_flight();
+TEST(Calculations, REQ_WEIGHT_01_LightAndHeavyScaleBothFlows) {
+    const double base_cruise = 2400.0;
+    const double base_holding = 2160.0;
 
-    const FuelCalculation light_result = calculate_fuel(light_aircraft);
-    const FuelCalculation heavy_result = calculate_fuel(heavy_aircraft);
+    FlightRecord light = make_base_flight();
+    light.aircraft_weight_kg = kLightAircraftWeightKg;
 
-    // Make the hypothetical limitation explicit without compiler warnings.
-    (void)light_aircraft_weight_kg;
-    (void)heavy_aircraft_weight_kg;
+    FlightRecord heavy = make_base_flight();
+    heavy.aircraft_weight_kg = kHeavyAircraftWeightKg;
 
-    EXPECT_DOUBLE_EQ(
-        light_result.trip_fuel_to_go_kg,
-        heavy_result.trip_fuel_to_go_kg);
-
-    EXPECT_DOUBLE_EQ(
-        light_result.alternate_fuel_kg,
-        heavy_result.alternate_fuel_kg);
+    const FuelCalculation light_result = calculate_fuel(light);
+    const FuelCalculation heavy_result = calculate_fuel(heavy);
 
     EXPECT_DOUBLE_EQ(
-        light_result.contingency_fuel_kg,
-        heavy_result.contingency_fuel_kg);
+        base_cruise * kLightBurnMultiplier,
+        600.0);
 
     EXPECT_DOUBLE_EQ(
-        light_result.final_reserve_fuel_kg,
-        heavy_result.final_reserve_fuel_kg);
+        base_holding * kLightBurnMultiplier,
+        540.0);
 
     EXPECT_DOUBLE_EQ(
-        light_result.predicted_fuel_at_destination_kg,
-        heavy_result.predicted_fuel_at_destination_kg);
+        base_cruise * kHeavyBurnMultiplier,
+        12000.0);
 
     EXPECT_DOUBLE_EQ(
-        light_result.protected_fuel_kg,
-        heavy_result.protected_fuel_kg);
+        base_holding * kHeavyBurnMultiplier,
+        10800.0);
 
-    EXPECT_DOUBLE_EQ(
-        light_result.diversion_protected_fuel_kg,
-        heavy_result.diversion_protected_fuel_kg);
+    EXPECT_NEAR(light_result.trip_fuel_to_go_kg, 900.0, kTolerance);
+    EXPECT_NEAR(light_result.alternate_fuel_kg, 300.0, kTolerance);
+
+    EXPECT_NEAR(heavy_result.trip_fuel_to_go_kg, 18000.0, kTolerance);
+    EXPECT_NEAR(heavy_result.alternate_fuel_kg, 6000.0, kTolerance);
+}
+
+TEST(Calculations, REQ_WEIGHT_01_ReservesFollowClass) {
+    FlightRecord light = make_base_flight();
+    light.aircraft_weight_kg = kLightAircraftWeightKg;
+
+    FlightRecord medium = make_base_flight();
+    medium.aircraft_weight_kg = kMediumAircraftWeightKg;
+
+    FlightRecord heavy = make_base_flight();
+    heavy.aircraft_weight_kg = kHeavyAircraftWeightKg;
+
+    const FuelCalculation light = calculate_fuel(light);
+    const FuelCalculation medium = calculate_fuel(medium);
+    const FuelCalculation heavy = calculate_fuel(heavy);
+
+    EXPECT_DOUBLE_EQ(light.contingency_fuel_kg, 45.0);
+    EXPECT_DOUBLE_EQ(light.final_reserve_fuel_kg, 270.0);
+    EXPECT_DOUBLE_EQ(light.protected_fuel_kg, 615.0);
+
+    EXPECT_DOUBLE_EQ(medium.contingency_fuel_kg, 180.0);
+    EXPECT_DOUBLE_EQ(medium.final_reserve_fuel_kg, 1080.0);
+    EXPECT_DOUBLE_EQ(medium.protected_fuel_kg, 2460.0);
+
+    EXPECT_DOUBLE_EQ(heavy.contingency_fuel_kg, 900.0);
+    EXPECT_DOUBLE_EQ(heavy.final_reserve_fuel_kg, 5400.0);
+    EXPECT_DOUBLE_EQ(heavy.protected_fuel_kg, 12300.0);
 }

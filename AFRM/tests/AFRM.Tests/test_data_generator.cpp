@@ -99,15 +99,17 @@ TEST(DataGenerator, REQ_STATUS_01_BoundaryRecordsHitTheThresholds) {
     }
 }
 
-TEST(DataGenerator, REQ_DATA_01_CsvHasHeaderAndEightColumns) {
+TEST(DataGenerator, REQ_DATA_01_CsvHasHeaderAndNineColumns) {
     const std::string csv = csv_text(generate_flights());
     std::istringstream lines(csv);
     std::string line;
 
     ASSERT_TRUE(std::getline(lines, line));
     EXPECT_EQ(line, std::string(kCsvHeader));
+
     while (std::getline(lines, line)) {
-        EXPECT_EQ(std::count(line.begin(), line.end(), ','), 7) << line;
+        EXPECT_EQ(std::count(line.begin(), line.end(), ','), 8)
+            << line;
     }
 }
 
@@ -123,4 +125,57 @@ TEST(DataGenerator, REQ_DATA_01_GeneratedCsvLoadsBackWithoutRejections) {
         EXPECT_EQ(loaded.records[i].flight_id, original[i].flight_id);
         EXPECT_EQ(loaded.records[i].fuel_on_board_kg, original[i].fuel_on_board_kg);
     }
+}
+TEST(DataGenerator, REQ_WEIGHT_01_BoundaryRecordsPerClass) {
+    const std::vector<FlightRecord> records =
+        generate_flights(kDefaultSeed, 20);
+
+    int boundary_count = 0;
+
+    for (const FlightRecord& record : records) {
+        if (record.flight_id.find("BND") == std::string::npos) {
+            continue;
+        }
+
+        ++boundary_count;
+
+        const FuelCalculation calculation =
+            calculate_fuel(record);
+
+        const FuelAssessment assessment =
+            assess_fuel_status(calculation);
+
+        EXPECT_NE(
+            assessment.status,
+            FuelStatus::FuelEmergency);
+    }
+
+    EXPECT_EQ(boundary_count, 21);
+}
+
+TEST(DataGenerator, REQ_WEIGHT_02_AllThreeClassesGenerated) {
+    const std::vector<FlightRecord> records =
+        generate_flights(kDefaultSeed, 20);
+
+    bool has_light = false;
+    bool has_medium = false;
+    bool has_heavy = false;
+
+    for (const FlightRecord& record : records) {
+        has_light |=
+            record.aircraft_weight_kg ==
+            kLightAircraftWeightKg;
+
+        has_medium |=
+            record.aircraft_weight_kg ==
+            kMediumAircraftWeightKg;
+
+        has_heavy |=
+            record.aircraft_weight_kg ==
+            kHeavyAircraftWeightKg;
+    }
+
+    EXPECT_TRUE(has_light);
+    EXPECT_TRUE(has_medium);
+    EXPECT_TRUE(has_heavy);
 }
