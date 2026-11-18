@@ -26,6 +26,11 @@ AFRM can:
   - `FUEL EMERGENCY`.
 - Print a console report with explanations and summary counts.
 - Generate deterministic fictional CSV data for testing.
+- Assign one of three weight classes:
+  - 'light';
+  - 'medium;
+  - 'heavy'.
+- The multiplier affecting cruise/holding flow will be based on these.   
 
 ## Project structure
 
@@ -173,23 +178,35 @@ Run only the assessment tests:
 The test suites cover:
 
 - fuel calculations and validation;
+- weight-class multipliers;
+- MEDIUM regression compatibility;
 - rounding behaviour;
 - contingency and reserve calculations;
 - predicted fuel at destination;
 - status thresholds;
 - CSV loading and rejected rows;
+- nine-column CSV round trips;
 - deterministic data generation;
-- generated CSV round trips.
+- all three generated weight classes;
+- generated boundary records;
+- all four generated statuses.
 
 ## CSV format
 
 The CSV header must exactly match:
 
 ```text
-flight_id,trip_distance_nm,alternate_distance_nm,distance_flown_nm,fuel_on_board_kg,ground_speed_knots,cruise_flow_kg_per_hour,holding_flow_kg_per_hour
+flight_id,trip_distance_nm,alternate_distance_nm,distance_flown_nm,fuel_on_board_kg,ground_speed_knots,cruise_flow_kg_per_hour,holding_flow_kg_per_hour,aircraft_weight_kg
 ```
+## CSV compatibility
 
-Each data row must contain eight fields:
+CR-001 changes the CSV format from eight columns to nine columns by adding
+`aircraft_weight_kg`.
+
+The loader intentionally rejects the former eight-column format. Existing CSV files
+must be migrated by adding a valid aircraft weight, normally `20000` for MEDIUM
+compatibility.
+Each data row must contain 9 fields:
 
 ```text
 flight_id
@@ -200,6 +217,7 @@ fuel_on_board_kg
 ground_speed_knots
 cruise_flow_kg_per_hour
 holding_flow_kg_per_hour
+aircraft_weight_k
 ```
 
 Units are:
@@ -228,6 +246,7 @@ The loader rejects:
 - zero or negative speed;
 - zero or negative fuel flows;
 - non-finite numeric values.
+- - zero, negative, non-finite or unsupported aircraft weights.
 
 Invalid rows are rejected with a line number and reason. Other valid rows
 continue to load.
@@ -244,30 +263,38 @@ The model assumes:
 - no wind;
 - no climb or descent calculation;
 - no taxi fuel;
-- no weight-dependent fuel-burn adjustment;
+- aircraft weight is represented by one of three supported fictional classes;
+- the corresponding burn multiplier affects cruise and holding fuel flow;
+- the weight classes and multipliers are simplified educational assumptions.
 - fictional and simplified operating conditions.
 
 The formulas are:
 
 ```text
+effective_cruise_flow_kg_per_hour =
+    cruise_flow_kg_per_hour * weight_multiplier
+
+effective_holding_flow_kg_per_hour =
+    holding_flow_kg_per_hour * weight_multiplier
+
 remaining_distance_nm = trip_distance_nm - distance_flown_nm
 
 trip_fuel_to_go_kg =
     remaining_distance_nm / ground_speed_knots
-    * cruise_flow_kg_per_hour
+    * effective_cruise_flow_kg_per_hour
 
 alternate_fuel_kg =
     alternate_distance_nm / ground_speed_knots
-    * cruise_flow_kg_per_hour
+    * effective_cruise_flow_kg_per_hour
 
 contingency_fuel_kg =
     max(
         5% of trip fuel to go,
-        5 minutes of holding fuel
+        5 minutes of effective holding fuel
     )
 
 final_reserve_fuel_kg =
-    30 minutes of holding fuel
+    30 minutes of effective holding fuel
 
 predicted_fuel_at_destination_kg =
     fuel_on_board_kg - trip_fuel_to_go_kg
@@ -288,6 +315,17 @@ rounded.
 
 Threshold equality counts as meeting the threshold.
 
+## Supported aircraft weights are:
+
+| Weight class | Weight | Burn multiplier |
+| --- | ---: | ---: |
+| LIGHT | `5000 kg` | `0.25` |
+| MEDIUM | `20000 kg` | `1.0` |
+| HEAVY | `100000 kg` | `5.0` |
+
+The multiplier is applied once to both cruise and holding fuel flow.
+MEDIUM preserves the original v1.0.1 calculation behaviour.
+
 ## Dataset generation
 
 The generator uses a fixed default seed:
@@ -298,13 +336,17 @@ The generator uses a fixed default seed:
 
 It creates:
 
-- seven fixed boundary records;
+- seven MEDIUM boundary records;
+- seven LIGHT boundary records;
+- seven HEAVY boundary records;
 - twenty random records by default;
+- deterministic records for a given seed;
 - random records cycling through the four target status bands.
 
-Generated records do not store a status. The status is calculated after loading
-or generation using the same calculation and assessment functions as the main
-application.
+The default generated dataset therefore contains 41 records.
+
+Generated records do not store a status. The status is calculated after loading or
+generation using the same calculation and assessment functions as the main application.
 
 ## Continuous integration
 
@@ -312,6 +354,7 @@ The repository includes a GitHub Actions workflow at:
 
 ```text
 .github/workflows/ci.yml
+```
 
 ## Disclaimer
 
