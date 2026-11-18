@@ -14,6 +14,17 @@ thresholds are simplified teaching assumptions.
 | R4 | Predicted fuel at destination is calculated from fuel on board minus trip fuel to go and is used for assessment. |
 | R5 | All four statuses and their exact threshold boundaries behave correctly. |
 | R6 | Invalid records are rejected safely and generated data is repeatable. |
+| R7 | Aircraft weight class affects fuel burn using the supported LIGHT, MEDIUM and HEAVY multipliers. Unsupported weights are rejected safely. |
+
+## Weight classes
+
+| Class | Aircraft weight | Burn multiplier |
+| --- | ---: | ---: |
+| LIGHT | 5000 kg | 0.25 |
+| MEDIUM | 20000 kg | 1.0 |
+| HEAVY | 100000 kg | 5.0 |
+
+The multiplier is applied once to both cruise and holding fuel flow before fuel components are calculated. MEDIUM preserves the v1.0.1 behaviour.
 
 ## Units
 
@@ -87,7 +98,9 @@ A flight record is rejected when:
 - ground speed is zero or negative;
 - cruise fuel flow is zero or negative;
 - holding fuel flow is zero or negative.
-
+- aircraft weight is not exactly one of 5000 kg, 20000 kg or 100000 kg;
+- aircraft weight is zero, negative, NaN or infinity.
+- 
 The CSV loader also rejects rows with:
 
 - too few fields;
@@ -117,6 +130,7 @@ The current requirement prefixes are:
 | `REQ_PFD_01` | R4 |
 | `REQ_STATUS_01` | R5 |
 | `REQ_DATA_01` | R6 |
+| `REQ_WEIGHT_01` | R7 |
 
 ## Requirement-to-implementation-to-test mapping
 
@@ -128,14 +142,13 @@ The current requirement prefixes are:
 | R4 | `src/AFRM.Core/Calculations.cpp`, `Assessment.cpp` | `Calculations.REQ_PFD_01_FuelOnBoardMinusTripFuelToGo`; `Assessment.REQ_PFD_01_StatusFromFullPipelineOnBoundaryFlights`; `Assessment.REQ_PFD_01_RoundingNeverMakesMarginalCaseSafer` |
 | R5 | `src/AFRM.Core/Assessment.h`, `Assessment.cpp`, `Models.h` | `Assessment.REQ_STATUS_01_StatusLabelsAreExact`; `FourBands`; `ExactlyOnEachThreshold`; `OneKilogramEitherSideOfEachThreshold`; `NegativeAndZeroPfdAreEmergency`; `NaNPfdFailsSafeToEmergency`; `ExplanationIsGivenForEveryStatus`; `DataGenerator.REQ_STATUS_01_BoundaryRecordsHitTheThresholds` |
 | R6 | `src/AFRM.Core/CsvLoader.h`, `CsvLoader.cpp`, `DataGenerator.h`, `DataGenerator.cpp`, `Calculations.cpp` | `CsvLoader.REQ_DATA_01_ValidRowsLoaded`; `DecimalsSpacesAndCrLfAccepted`; `EachInvalidRowIsRejectedWithLineAndReason`; `InvalidRowsDoNotLoseValidRows`; `BadOrMissingHeaderRejectsWholeFile`; `MissingFileReportsError`; `DataGenerator.REQ_DATA_01_SameSeedGivesIdenticalData`; `DifferentSeedsGiveDifferentData`; `RecordCountFollowsArgument`; `AllRecordsAreValidAndUniquelyNamed`; `GeneratedDataExercisesAllFourStatuses`; `CsvHasHeaderAndEightColumns`; `GeneratedCsvLoadsBackWithoutRejections` |
+| R7 | `Models.h`, `Config.h`, `Calculations.cpp`, `CsvLoader.cpp`, `DataGenerator.cpp` | Weight multiplier tests; MEDIUM regression tests; unsupported-weight validation; nine-column CSV tests; three-class generator tests |
 
 ## Implementation status
 
 The requirements above describe the current simplified implementation.
 
-The documentation does not claim that the project has been built or that all
-tests have passed. Verification should be performed by building the solution
-and running `AFRM.Tests.exe`.
+branch CI run `44190613541` passed 44 tests in both Debug and Release. Verification should be performed by building the solution in both debug and release.
 
 ## Scope limitations
 
@@ -144,7 +157,6 @@ The current model does not include:
 - wind;
 - climb or descent;
 - taxi fuel;
-- aircraft weight;
 - aircraft-specific performance tables;
 - delays;
 - route changes;
