@@ -465,7 +465,51 @@ prove that the implementation is correct, so the focused assertions and regressi
 tests remain necessary.
 
 ---
+## Decision coverage table
 
+OpenCppCoverage reports line coverage rather than decision or branch coverage.
+The decisions below were therefore reviewed manually. Both true and false outcomes
+must be exercised for each decision.
+
+| # | Decision | True outcome | False outcome | Evidence |
+|---|---|---|---|---|
+| D1 | Flight identifier is empty | Reject `"flight_id is empty"` | Continue validation | `REQ_DATA_01_AllRecordsAreValidAndUniquelyNamed`; invalid-row loader tests |
+| D2 | A numeric field is non-finite | Reject `"numeric field is not finite"` | Continue validation | `Calculations.*InvalidInputsRejected`; loader malformed and NaN tests |
+| D3 | Trip distance is negative | Reject negative trip-distance record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D4 | Alternate distance is negative | Reject negative alternate-distance record | Continue validation | Loader invalid-row tests |
+| D5 | Distance flown is negative | Reject negative distance-flown record | Continue validation | Loader invalid-row tests |
+| D6 | Distance flown exceeds trip distance | Reject record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D7 | Fuel on board is negative | Reject negative-fuel record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D8 | Ground speed is zero or negative | Reject record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D9 | Cruise fuel flow is zero or negative | Reject record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D10 | Holding fuel flow is zero or negative | Reject record | Continue validation | `Calculations.REQ_CALC_01_InvalidInputsRejected` |
+| D11 | Aircraft weight is supported | Continue with the weight calculation | Reject unsupported weight | `REQ_WEIGHT_02` loader and unsupported-weight tests |
+| D12 | Weight equals 5000 kg | Return LIGHT | Continue weight classification | `REQ_WEIGHT_01` LIGHT calculation and boundary tests |
+| D13 | Weight equals 100000 kg | Return HEAVY | Continue weight classification | `REQ_WEIGHT_01` HEAVY calculation and boundary tests |
+| D14 | No LIGHT or HEAVY weight match | Return MEDIUM | Not applicable | MEDIUM baseline and regression tests |
+| D15 | Effective cruise flow produces rounded alternate fuel | Round alternate fuel upward | Zero result or no rounding difference | `REQ_CALC_01_RoundUpToWholeKg` |
+| D16 | 5% of trip fuel is greater than five-minute holding fuel | Return contingency from 5% of trip fuel | Evaluate five-minute holding branch | `REQ_CONT_01_BothBranchesAndCrossover` |
+| D17 | PFD is greater than or equal to protected fuel | Return `NOMINAL` | Evaluate the CAUTION branch | `REQ_STATUS_01_ExactlyOnEachThreshold`; `REQ_STATUS_01_OneKilogramEitherSideOfEachThreshold` |
+| D18 | PFD is greater than or equal to diversion-protected fuel | Return `CAUTION` | Evaluate the MINIMUM FUEL branch | `REQ_STATUS_01_ExactlyOnEachThreshold`; `REQ_STATUS_01_OneKilogramEitherSideOfEachThreshold` |
+| D19 | PFD is greater than or equal to final reserve | Return `MINIMUM FUEL` | Return `FUEL EMERGENCY` | `REQ_STATUS_01_ExactlyOnEachThreshold`; `REQ_STATUS_01_OneKilogramEitherSideOfEachThreshold` |
+| D20 | PFD is NaN | Return safe emergency assessment | Continue normal status comparison | `REQ_STATUS_01_NaNPfdFailsSafeToEmergency` |
+| D21 | PFD is negative or zero | Return `FUEL EMERGENCY` | Continue normal status comparison | `REQ_STATUS_01_NegativeAndZeroPfdAreEmergency` |
+| D22 | CSV field count is correct | Parse the row | Reject with an incorrect-field-count reason | Valid-row and too-few/too-many-field loader tests |
+| D23 | CSV header exactly matches nine-column header | Continue loading | Reject the file as a header error | `REQ_WEIGHT_02_NineColumnHeaderRequired`; `REQ_WEIGHT_02_EightColumnFileRejected` |
+| D24 | A CSV row has invalid weight | Reject that row with line and reason | Load the row | `REQ_WEIGHT_02_UnsupportedWeightRejectedWithLineAndReason` |
+| D25 | Generated record count follows argument | Emit boundary plus requested random records | Emit only boundary records when count is zero | `REQ_DATA_01_RecordCountFollowsArgument` |
+| D26 | Random fuel-target iteration has a fourth status target | Cycle to the next status | Not applicable | `REQ_DATA_01_GeneratedDataExercisesAllFourStatuses` |
+| D27 | Two generated datasets use the same seed | Produce identical CSV data | Produce different data for a different seed | Same-seed and different-seed generator tests |
+
+### Result
+
+All listed decisions were exercised through automated tests or the hand-made boundary
+tests. Statement coverage was measured with OpenCppCoverage, while true/false
+decision coverage was confirmed manually using this table.
+
+No additional test change was required because the existing 44-test suite exercises
+both outcomes of the listed decisions, including the CR-001 weight paths and the
+status threshold boundaries.
 ## 13. Performance plan
 
 Performance is measured using Release x64.
