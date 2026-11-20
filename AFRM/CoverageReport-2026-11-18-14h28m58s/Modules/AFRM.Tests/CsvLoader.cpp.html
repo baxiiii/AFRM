@@ -1,0 +1,149 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+        <meta charset="utf-8"/>
+	    <title>CsvLoader.cpp</title>
+	    <link href="../../third-party/google-code-prettify/prettify-CppCoverage.css" type="text/css" rel="stylesheet" />
+	    <script type="text/javascript" src="../../third-party/google-code-prettify/prettify.js"></script>
+	</head>
+    <body onload="prettyPrint()">
+        <h4></h4>
+        <pre class="prettyprint lang-cpp linenums">
+// CsvLoader.cpp
+#include "CsvLoader.h"
+
+#include &lt;charconv&gt;
+#include &lt;cstddef&gt;
+#include &lt;fstream&gt;
+#include &lt;iterator&gt;
+#include &lt;string&gt;
+#include &lt;system_error&gt;
+#include &lt;utility&gt;
+#include &lt;vector&gt;
+#include "pch.h"
+
+#include "Calculations.h"
+#include "Config.h"
+
+namespace afrm {
+
+    namespace {
+
+<span style = "background-color:#dfd">        std::string_view trim(std::string_view text) {
+            constexpr std::string_view kWhitespace = " \t\r\n";
+            const auto first = text.find_first_not_of(kWhitespace);
+            if (first == std::string_view::npos) return {};
+            const auto last = text.find_last_not_of(kWhitespace);
+            return text.substr(first, last - first + 1);
+        }</span>
+
+<span style = "background-color:#dfd">        std::vector&lt;std::string_view&gt; split_on_commas(std::string_view line) {
+            std::vector&lt;std::string_view&gt; fields;
+            std::size_t start = 0;
+            while (true) {
+                const auto comma = line.find(',', start);
+                if (comma == std::string_view::npos) {
+                    fields.push_back(line.substr(start));
+                    return fields;</span>
+                }
+<span style = "background-color:#dfd">                fields.push_back(line.substr(start, comma - start));
+                start = comma + 1;
+            }</span>
+<span style = "background-color:#fdd">        }</span>
+
+        // from_chars always uses '.' as the decimal point, whatever the system locale.
+<span style = "background-color:#dfd">        bool parse_double(std::string_view text, double&amp; value) {
+            const char* const end = text.data() + text.size();
+            const auto result = std::from_chars(text.data(), end, value);
+            return !text.empty() &amp;&amp; result.ec == std::errc{} &amp;&amp; result.ptr == end;
+        }</span>
+
+    }  // namespace
+
+<span style = "background-color:#dfd">    ValidationResult parse_flight_row(std::string_view line, FlightRecord&amp; record) {
+        const auto fields = split_on_commas(line);</span>
+
+<span style = "background-color:#dfd">        if (fields.size() != kCsvColumnCount) {
+            return ValidationResult::fail(</span>
+                "expected " + std::to_string(kCsvColumnCount) +
+                " fields but found " + std::to_string(fields.size()));
+        }
+
+        static constexpr const char* names[] = {
+            "trip_distance_nm", "alternate_distance_nm", "distance_flown_nm",
+            "fuel_on_board_kg", "ground_speed_knots", "cruise_flow_kg_per_hour",
+            "holding_flow_kg_per_hour", "aircraft_weight_kg"
+        };
+
+<span style = "background-color:#dfd">        double v[8] = {};</span>
+
+<span style = "background-color:#dfd">        for (std::size_t i = 0; i &lt; 8; ++i) {
+            if (!parse_double(trim(fields[i + 1]), v[i])) {
+                return ValidationResult::fail(</span>
+                    std::string(names[i]) + " is missing or not a number");
+            }
+<span style = "background-color:#dfd">        }</span>
+
+<span style = "background-color:#dfd">        record = FlightRecord{</span>
+            std::string(trim(fields[0])),
+            v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]
+        };
+
+<span style = "background-color:#dfd">        return ValidationResult::ok();
+    }</span>
+
+
+<span style = "background-color:#dfd">    LoadResult load_flights_from_stream(std::istream&amp; input) {
+        LoadResult result;
+        std::string line;</span>
+
+<span style = "background-color:#dfd">        if (!std::getline(input, line) || trim(line) != kCsvHeader) {
+            result.file_error = "file is empty or the header row is not the expected one";
+            return result;</span>
+        }
+
+<span style = "background-color:#dfd">        std::size_t line_number = 1;  // the header
+        while (std::getline(input, line)) {
+            ++line_number;
+            if (trim(line).empty()) continue;  // skip blank lines</span>
+
+<span style = "background-color:#dfd">            FlightRecord record;
+            ValidationResult status = parse_flight_row(line, record);
+            if (status.is_valid) status = validate_flight_record(record);</span>
+
+<span style = "background-color:#dfd">            if (status.is_valid) {
+                result.records.push_back(std::move(record));
+            }</span>
+            else {
+<span style = "background-color:#dfd">                result.rejected.push_back({ line_number, status.message });</span>
+            }
+<span style = "background-color:#dfd">        }
+        return result;
+    }</span>
+
+<span style = "background-color:#dfd">    LoadResult load_flights_from_file(const std::filesystem::path&amp; path) {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            LoadResult result;
+            result.file_error = "cannot open file: " + path.string();
+            return result;</span>
+        }
+<span style = "background-color:#fdd">        return load_flights_from_stream(file);</span>
+<span style = "background-color:#dfd">    }</span>
+
+}  // namespace afrm</pre>
+        <hr />
+        <table width="100%">
+            <thead>
+                <tr>
+                    <th align="center">
+                        <small>Generated by</small>
+                        <a href="https://github.com/OpenCppCoverage/OpenCppCoverage/releases">
+                            <strong>OpenCppCoverage (Version: 0.9.9.0)</strong>
+                        </a>
+                    </th>
+                </tr>
+            </thead>
+        </table>
+    </body>
+</html>
